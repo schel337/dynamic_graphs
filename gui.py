@@ -25,20 +25,18 @@ def calculate():
 	"""
 	Calculates new dynamics of the system
 	"""
-	try:
-		T = int(time_var.get())
-		A = parse_matrix(A_var.get())
-		B = parse_vector(B_var.get())
-		x0 = parse_vector(x0_var.get())
-		if contin_var.get():
-			s = int(sampling_var.get())
-			return np.linspace(0,T,num=s), matrix_exp_sys(A,B,x0,T,s)#contin_lin_sys(A,B,x0,T,s)
-		else:	
-			return np.array((range(T+1))), disc_lin_sys(A,B,x0,T)
-	except ValueError:
-		pass
+	T = int(time_var.get())
+	A = parse_matrix(A_var.get())
+	B = parse_vector(B_var.get())
+	x0 = parse_vector(x0_var.get())
+	if contin_var.get():
+		s = int(sampling_var.get())
+		return np.linspace(0,T,num=s), matrix_exp_sys(A,B,x0,T,s)#contin_lin_sys(A,B,x0,T,s)
+	else:	
+		return np.array((range(T+1))), disc_lin_sys(A,B,x0,T)
 
-def plot_static(*args):
+
+def plot_static():
 	try:
 		Ts, X = calculate()
 		axs.clear()
@@ -49,8 +47,9 @@ def plot_static(*args):
 		canvas.draw()
 	except ValueError:
 		pass
-		
-def plot_animated(*args):
+
+	
+def plot_animated():
 	try:
 		Ts, X = calculate()
 		Tf = int(time_var.get())
@@ -71,8 +70,36 @@ def plot_animated(*args):
 		#animation.FuncAnimation(fig, updater,frames=Tf,interval=1000, blit=False)
 	except ValueError:
 		pass
+		
+def plot_animated_plane():
+	"""
+	Plots the graph in the 2d plane, by default selecting first two variables
+	Probably need to have a faint, longer trail or something
+	"""
+	try:
+		Ts, X = calculate()
+		assert X.shape[0] >= 2, "plotting in the plane requires at least 2 dimensions"
+		tail = 5
+		delay = min(int(2000 / Ts.shape[0]),5)
+		axs.clear()
+		X1, X2 = X[0], X[1]
+		axs.set_xlim(left=np.min(X1),right=np.max(X1))
+		axs.set_ylim(bottom=np.min(X2),top=np.max(X2))
+		line = axs.plot(X1[0:tail], X2[0:tail],marker='o',color=(0,0,0,1))[0]
+		trail = axs.plot(X1[0:tail], X2[0:tail],color=(0,0,0,0.2))[0]
+		canvas.draw()
+		def updater(t):
+			line.set_data(X1[t:t+tail],X2[t:t+tail])
+			trail.set_data(X1[0:t+1],X2[0:t+1])
+			canvas.draw()
+			if t + tail < X1.shape[0]:
+				root.after(delay, updater, t+1)
+		updater(0)
+	except ValueError:
+		pass	
+		
 	
-def randomize(*args):
+def randomize():
 	try:
 		x0 = parse_vector(x0_var.get())
 		n = x0.shape[0]
@@ -95,46 +122,38 @@ def randomize(*args):
 		pass
 		
 	
-	
-
-def toggle_contin(*args):
-	if contin_var.get():
-		n = parse_vector(x0_var.get()).shape[0]
-		sampling_label.pack(side=tk.LEFT)
-		sampling_entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-	else:
-		sampling_label.pack_forget()
-		sampling_entry.pack_forget()
 		
-	
-
 input_frame = ttk.Frame(root, borderwidth=5, relief="sunken")
 input_frame.grid(column=0, row=1, sticky="nsew")
-ttk.Button(input_frame, text="Plot", command=plot_static).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-ttk.Button(input_frame, text="Animate", command=plot_animated).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+
+#TODO: add var for plot type and have that one handle plotting things
+plot_type_var = entry_var("Plot", tk.StringVar(), input_frame, default='static')
+def plot():
+	plotter = plot_type_var.get()
+	if plotter == 'static':
+		plot_static()
+	elif plotter == 'animate':
+		plot_animated()
+	elif plotter == 'plane':
+		plot_animated_plane()
+ttk.Button(input_frame, text="Plot", command=plot).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
+#ttk.Button(input_frame, text="Animate", command=plot_animated).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 ttk.Button(input_frame, text="Randomize", command=randomize).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-A_var, B_var, time_var, x0_var = tk.StringVar(), tk.StringVar(), tk.StringVar(), tk.StringVar()
-A_var.set("0.5,-0.5;\r 0.5,0.5")
-B_var.set("1,1")
-time_var.set('20')
-x0_var.set('1,1')
-ttk.Label(input_frame, text="A").pack(side=tk.LEFT)
-ttk.Entry(input_frame, width=7, textvariable=A_var).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-ttk.Label(input_frame, text="B").pack(side=tk.LEFT)
-ttk.Entry(input_frame, width=7, textvariable=B_var).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-ttk.Label(input_frame, text="x0").pack(side=tk.LEFT)
-ttk.Entry(input_frame, width=7, textvariable=x0_var).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
-ttk.Label(input_frame, text="T").pack(side=tk.LEFT)
-ttk.Entry(input_frame, width=7, textvariable=time_var).pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
-contin_var, sampling_var = tk.BooleanVar(), tk.StringVar()
-contin_var.set(False)
-sampling_var.set("100")
-ttk.Label(input_frame, text="Continous Time").pack(side=tk.LEFT)
-ttk.Checkbutton(input_frame, width=7, variable=contin_var, command=toggle_contin).pack(side=tk.LEFT)
-sampling_label = ttk.Label(input_frame, text="samples")
-sampling_entry = ttk.Entry(input_frame, width=7, textvariable=sampling_var)
+A_var  = entry_var("A",tk.StringVar(), input_frame, default="0.5,-0.5;\r 0.5,0.5")
+B_var = entry_var("B",tk.StringVar(), input_frame, default = "1,1")
+x0_var = entry_var("x0",tk.StringVar(), input_frame, default = "1,1")
+time_var = entry_var("T",tk.StringVar(), input_frame, default = "20")
 
+contin_var = bool_var("Continuous", tk.BooleanVar(), input_frame, default=False)
+sampling_var = entry_var("Samples", tk.StringVar(), input_frame, show=False, default="100")
+#Possibly remove, use plot button as main method
+def toggle_contin():
+	if contin_var.get():
+		sampling_var.show()
+	else:
+		sampling_var.hide()
+contin_var.bind_command(toggle_contin)
 
 plot_static()
 canvas.draw()
