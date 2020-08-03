@@ -5,9 +5,13 @@ from scipy import integrate
 def disc_lin_sys(A,B,x0,T):
 	"""
 	Models x(t+l) = Ax(t) + B upto time step T
+	Each starting position should be a column of x0 or a single 1d array
 	"""
-	n = x0.shape[0]
-	assert A.shape[0] == n and A.shape[1] == n and B.shape[0] == n, "System dimensions incompatible"
+	if x0.ndim > 1:
+		B = B[:,None]
+	else:
+		n = x0.shape[0]
+		assert A.shape[0] == n and A.shape[1] == n and B.shape[0] == n, "System dimensions incompatible"
 	X, xt = [x0], x0
 	for t in range(T):
 		xt = A @ xt + B
@@ -19,9 +23,13 @@ def contin_lin_sys(A,B,x0,T,s):
 	"""
 	Models x' = Ax(t) + B upto time step T, samples uniformly s times
 	Solves by diagonalizing the system in new coordinates
+	Each starting position should be a column of x0 or a single 1d array
 	"""
-	n = x0.shape[0]
-	assert A.shape[0] == n and A.shape[1] == n and B.shape[0] == n, "System dimensions incompatible"
+	if x0.ndim > 1:
+		B = B[:,None]
+	else:
+		n = x0.shape[0]
+		assert A.shape[0] == n and A.shape[1] == n and B.shape[0] == n, "System dimensions incompatible"
 	L, V = np.linalg.eig(A)
 	Vinv = np.linalg.inv(V)
 	B, x0 = Vinv @ B, Vinv @ x0
@@ -43,16 +51,16 @@ def matrix_exp_sys(A,B,x0,T,s):
 	Solves by matrix exponential
 	"""
 	n = x0.shape[0]
-	assert A.shape[0] == n and A.shape[1] == n and B.shape[0] == n, "System dimensions incompatible"
 	step = T / s
 	e_sA = expm(step*A)
 	pts = np.linspace(0,step,20)
 	vals = np.array([expm(-x*A) @ B for x in pts])
 	W = np.array([integrate.simps(vals[0:20,i],pts) for i in range(n)])
-	xt = x0
-	X = [x0]
+	X, xt = [x0], x0
+	if x0.ndim > 1:
+		W = W[:,None]
 	for t in range(s-1):
-		xt1 = np.array(e_sA @ (xt + W))
+		xt1 = e_sA @ (xt + W)
 		X.append(xt1)
 		xt = xt1
 	X = np.stack(np.array(X),axis=1)
