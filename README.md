@@ -5,5 +5,5 @@ Personal project for visualing discrete or continuous linear time invariant syst
 - lin_sys.py: Code for modeling linear time invariant systems.
 - utils.py: Parsing tkinter string input into arrays.
 ## Examples
-- Standard example of a 3D system which is very close to stable, giving a spiral shape: ![Ex1](examples/ex1.png)
-- This is an example of the heatmap style I tried to use to "compactify" extra dimensions, albeit this shows the trajectory of one starting point: ![Ex2](examples/ex2.png)
+- Standard example of a 3D system which is very close to stable, giving a spiral shape: ![Ex1](examples/ex1.PNG)
+- This is an example of the heatmap style I tried to use to "compactify" extra dimensions, albeit this shows the trajectory of one starting point: ![Ex2](examples/ex2.PNG)
